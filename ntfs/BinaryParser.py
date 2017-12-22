@@ -40,34 +40,35 @@ def unpack_from(fmt, buf, off=0):
     Theres an extra allocation and copy, but there's no getting
       around that.
     """
+    
     if isinstance(buf, basestring):
         return struct.unpack_from(fmt, buf, off)
     elif not hasattr(buf, "__unpackable__"):
         return struct.unpack_from(fmt, buf, off)
-    else:
-        size = struct.calcsize(fmt)
-        buf = buf[off:off + size]
-        return struct.unpack_from(fmt, buf, 0x0)
+    size = struct.calcsize(fmt)
+    buf = buf[off:off + size]
+    return struct.unpack_from(fmt, buf, 0x0)
 
 
 def unpack(fmt, string):
     """
     Like the shimmed unpack_from, but for struct.unpack.
     """
+    
     if isinstance(buf, basestring):
         return struct.unpack(fmt, string)
     elif not hasattr(buf, "__unpackable__"):
         return struct.unpack(fmt, string)
-    else:
-        size = struct.calcsize(fmt)
-        buf = string[:size]
-        return struct.unpack(fmt, buf, 0x0)
+    size = struct.calcsize(fmt)
+    buf = string[:size]
+    return struct.unpack(fmt, buf, 0x0)
 
 
 class Mmap(object):
     """
     Convenience class for opening a read-only memory map for a file path.
     """
+    
     def __init__(self, filename):
         super(Mmap, self).__init__()
         self._filename = filename
@@ -96,6 +97,7 @@ def hex_dump(src, start_addr=0):
       data is interpreted as starting at this offset, and
       the offset column is updated accordingly.
     """
+   
     FILTER = ''.join([(len(repr(chr(x))) == 3) and
                         chr(x) or
                         '.' for x in range(256)])
@@ -104,19 +106,19 @@ def hex_dump(src, start_addr=0):
 
     remainder_start_addr = start_addr
 
-    if start_addr % length != 0:
+    if start_addr % length:
         base_addr = start_addr - (start_addr % length)
         num_spaces = (start_addr % length)
         num_chars = length - (start_addr % length)
 
-        spaces = " ".join(["  " for i in xrange(num_spaces)])
+        spaces = ' '.join(["  " for i in xrange(num_spaces)])
         s = src[0:num_chars]
         hexa = ' '.join(["%02X" % ord(x) for x in s])
         printable = s.translate(FILTER)
 
         result.append("%04X   %s %s   %s%s\n" %
                       (base_addr, spaces, hexa,
-                      " " * (num_spaces + 1), printable))
+                      ' '*(num_spaces + 1), printable))
 
         src = src[num_chars:]
         remainder_start_addr = base_addr + length
@@ -143,7 +145,7 @@ class decoratorargs(object):
 
 class memoize(decoratorargs):
     class Node:
-        __slots__ = ['key', 'value', 'older', 'newer']
+        __slots__ = ["key", "value", "older", "newer"]
 
         def __init__(self, key, value, older=None, newer=None):
             self.key = key
@@ -178,8 +180,7 @@ class memoize(decoratorargs):
         self.obj = inst
         if self.is_property:
             return self.__call__()
-        else:
-            return self
+        return self
 
     def __call__(self, *args, **kwargs):
         key = self.keyfunc(*args, **kwargs)
@@ -251,7 +252,8 @@ def align(offset, alignment):
     - `offset`: An integer
     - `alignment`: An integer
     """
-    if offset % alignment == 0:
+    
+    if not offset % alignment:
         return offset
     return offset + (alignment - (offset % alignment))
 
@@ -262,6 +264,7 @@ def dosdate(dosdate, dostime):
     `dostime`: 2 bytes, little endian.
     returns: datetime.datetime or datetime.datetime.min on error
     """
+    
     try:
         t  = ord(dosdate[1]) << 8
         t |= ord(dosdate[0])
@@ -291,12 +294,14 @@ class BinaryParserException(Exception):
     """
     Base Exception class for binary parsing.
     """
+    
     def __init__(self, value):
         """
         Constructor.
         Arguments:
         - `value`: A string description.
         """
+        
         super(BinaryParserException, self).__init__()
         self._value = value
 
@@ -312,12 +317,14 @@ class ParseException(BinaryParserException):
     An exception to be thrown during binary parsing, such as
     when an invalid header is encountered.
     """
+    
     def __init__(self, value):
         """
         Constructor.
         Arguments:
         - `value`: A string description.
         """
+        
         super(ParseException, self).__init__(value)
 
     def __repr__(self):
@@ -349,6 +356,7 @@ def read_byte(buf, offset):
     Throws:
     - `OverrunBufferException`
     """
+    
     try:
         return unpack_from("<B", buf, offset)[0]
     except struct.error:
@@ -364,6 +372,7 @@ def read_word(buf, offset):
     Throws:
     - `OverrunBufferException`
     """
+    
     try:
         return unpack_from("<H", buf, offset)[0]
     except struct.error:
@@ -379,6 +388,7 @@ def read_dword(buf, offset):
     Throws:
     - `OverrunBufferException`
     """
+    
     try:
         return unpack_from("<I", buf, offset)[0]
     except struct.error:
@@ -390,6 +400,7 @@ class Block(object):
     Base class for structure blocks in binary parsing.
     A block is associated with a offset into a byte-string.
     """
+    
     def __init__(self, buf, offset):
         """
         Constructor.
@@ -397,6 +408,7 @@ class Block(object):
         - `buf`: Byte string containing stuff to parse.
         - `offset`: The offset into the buffer at which the block starts.
         """
+        
         self._buf = buf
         self._offset = offset
         self._implicit_offset = 0
@@ -426,6 +438,7 @@ class Block(object):
             a generator of the items. This parameter is not valid if
             the `length` parameter is provided.
         """
+        
         is_generator = True
         if count is None:
             count = 1
@@ -467,7 +480,7 @@ class Block(object):
 
             typename = type_.__name__
 
-            if count == 0:
+            if not count:
                 def no_class_handler():
                     return
                 handler = no_class_handler
@@ -496,18 +509,17 @@ class Block(object):
                 def class_handler():
                     return type_(self._buf, self.absolute_offset(offset), self)
                 handler = class_handler
-
+                
                 if hasattr(type_, "structure_size"):
                     size = type_.structure_size(self._buf, self.absolute_offset(offset), self)
                     self._implicit_offset = offset + size
                 else:
                     temp = type_(self._buf, self.absolute_offset(offset), self)
-
                     self._implicit_offset = offset + len(temp)
         elif isinstance(type_, basestring):
             typename = type_
 
-            if count == 0:
+            if not count:
                 def no_basic_handler():
                     return
                 handler = no_basic_handler
@@ -574,6 +586,7 @@ class Block(object):
         @rtype: None
         @return: None
         """
+        
         if type(typename) == type:
             typename = typename.__name__
         self._declared_fields.append({
@@ -595,7 +608,8 @@ class Block(object):
         @rtype: str
         @return A nicely formatted string that describes this structure.
         """
-        ret = ""
+        
+        ret = ''
         for field in self._declared_fields:
             v = getattr(self, field["name"])()
             if isinstance(v, Block):
@@ -635,6 +649,7 @@ class Block(object):
         Throws:
         - `OverrunBufferException`
         """
+        
         return read_byte(self._buf, self._offset + offset)
 
     def unpack_int8(self, offset):
@@ -645,6 +660,7 @@ class Block(object):
         Throws:
         - `OverrunBufferException`
         """
+        
         o = self._offset + offset
         try:
             return unpack_from("<b", self._buf, o)[0]
@@ -660,6 +676,7 @@ class Block(object):
         Throws:
         - `OverrunBufferException`
         """
+        
         return read_word(self._buf, self._offset + offset)
 
     def unpack_word_be(self, offset):
@@ -671,6 +688,7 @@ class Block(object):
         Throws:
         - `OverrunBufferException`
         """
+        
         o = self._offset + offset
         try:
             return unpack_from(">H", self._buf, o)[0]
@@ -686,6 +704,7 @@ class Block(object):
         Throws:
         - `OverrunBufferException`
         """
+        
         o = self._offset + offset
         try:
             return unpack_from("<h", self._buf, o)[0]
@@ -699,6 +718,7 @@ class Block(object):
         - `offset`: The relative offset from the start of the block.
         - `word`: The data to apply.
         """
+        
         o = self._offset + offset
         # TODO
         return struct.pack_into("<H", self._buf, o, word)
@@ -711,6 +731,7 @@ class Block(object):
         Throws:
         - `OverrunBufferException`
         """
+        
         return read_dword(self._buf, self._offset + offset)
 
     def unpack_dword_be(self, offset):
@@ -721,6 +742,7 @@ class Block(object):
         Throws:
         - `OverrunBufferException`
         """
+        
         o = self._offset + offset
         try:
             return unpack_from(">I", self._buf, o)[0]
@@ -736,6 +758,7 @@ class Block(object):
         Throws:
         - `OverrunBufferException`
         """
+        
         o = self._offset + offset
         try:
             return unpack_from("<i", self._buf, o)[0]
@@ -750,6 +773,7 @@ class Block(object):
         Throws:
         - `OverrunBufferException`
         """
+        
         o = self._offset + offset
         try:
             return unpack_from("<Q", self._buf, o)[0]
@@ -765,6 +789,7 @@ class Block(object):
         Throws:
         - `OverrunBufferException`
         """
+        
         o = self._offset + offset
         try:
             return unpack_from("<q", self._buf, o)[0]
@@ -780,6 +805,7 @@ class Block(object):
         Throws:
         - `OverrunBufferException`
         """
+        
         o = self._offset + offset
         try:
             return unpack_from("<f", self._buf, o)[0]
@@ -795,6 +821,7 @@ class Block(object):
         Throws:
         - `OverrunBufferException`
         """
+        
         o = self._offset + offset
         try:
             return unpack_from("<d", self._buf, o)[0]
@@ -811,6 +838,7 @@ class Block(object):
         Throws:
         - `OverrunBufferException`
         """
+        
         if not length:
             return ""
         o = self._offset + offset
@@ -828,6 +856,7 @@ class Block(object):
         Throws:
         - `OverrunBufferException`
         """
+        
         return self.unpack_binary(offset, length)
 
     def unpack_wstring(self, offset, length):
@@ -840,6 +869,7 @@ class Block(object):
         Throws:
         - `UnicodeDecodeError`
         """
+        
         try:
             return self._buf[self._offset + offset:self._offset + offset + \
                              2 * length].tostring().decode("utf16")
@@ -856,6 +886,7 @@ class Block(object):
         Throws:
         - `OverrunBufferException`
         """
+        
         try:
             o = self._offset + offset
             return dosdate(self._buf[o:o + 2], self._buf[o + 2:o + 4])
@@ -871,6 +902,7 @@ class Block(object):
         Throws:
         - `OverrunBufferException`
         """
+        
         return parse_filetime(self.unpack_qword(offset))
 
     def unpack_systemtime(self, offset):
@@ -883,6 +915,7 @@ class Block(object):
         Throws:
         - `OverrunBufferException`
         """
+        
         o = self._offset + offset
         try:
             parts = unpack_from("<WWWWWWWW", self._buf, o)
@@ -901,6 +934,7 @@ class Block(object):
         Throws:
         - `OverrunBufferException`
         """
+        
         o = self._offset + offset
 
         try:
@@ -923,6 +957,7 @@ class Block(object):
         Arguments:
         - `offset`: The relative offset into this block.
         """
+        
         return self._offset + offset
 
     def offset(self):
@@ -930,6 +965,7 @@ class Block(object):
         Equivalent to self.absolute_offset(0x0), which is the starting
           offset of this block.
         """
+        
         return self._offset
 
 
@@ -940,6 +976,7 @@ class Nestable(object):
     `structure_size` staticmethod.  This enables the parent Block to
     seek among its children.
     """
+    
     def __init__(self, buf, offset):
         super(Nestable, self).__init__()
 
@@ -961,6 +998,7 @@ class Nestable(object):
         @rtype: int
         @return The length of the Block starting at the given location.
         """
+        
         raise NotImplemented
 
     def __len__(self):
@@ -972,4 +1010,5 @@ class Nestable(object):
         @rtype: int
         @return The length of this Block in bytes.
         """
+        
         raise NotImplemented
